@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify, render_template, Response
 from dicttoxml import dicttoxml
 from flask_restful import Resource, Api, reqparse
+from logging.handlers import RotatingFileHandler
 
-import os, re
+import os, re, logging
 
 app = Flask(__name__)
 api = Api(app)
@@ -101,4 +102,20 @@ api.add_resource(Headers, '/api/headers')
 api.add_resource(PostData, '/api/post')
 
 if __name__ == '__main__':
+    # Configure logging
+    handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter("[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
+    handler.setFormatter(formatter)
+    app.logger.addHandler(handler)
+
+    # Add handler to log messages to console (stdout)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    app.logger.addHandler(console_handler)
+
+    app.logger.setLevel(logging.INFO)
+
     app.run(debug=True, host='0.0.0.0', port=3000)
+
