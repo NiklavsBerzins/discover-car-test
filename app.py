@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, Response
 from dicttoxml import dicttoxml
 from flask_restful import Resource, Api, reqparse
 
-import os
+import os, re
 
 app = Flask(__name__)
 api = Api(app)
@@ -26,13 +26,21 @@ class Environment(Resource):
 
         env_data = getEnvironmentVariables()
 
+        bgcolor = os.environ.get('BGCOLOR', '#FFFFFF')
+        fgcolor = os.environ.get('FGCOLOR', '#000000')
+
+        if not re.fullmatch(r'#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?', bgcolor):
+            bgcolor = '#FFFFFF'
+        if not re.fullmatch(r'#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?', fgcolor):
+            fgcolor = '#000000'
+
         if format == 'json':
             return jsonify(env_data)
         elif format == 'xml':
             xml_data = dicttoxml(env_data)
             return Response(xml_data, content_type='application/xml; charset=utf-8')
         else:
-            rendered_html = render_template('environment.html', data=env_data)
+            rendered_html = render_template('environment.html', data=env_data, bgcolor=bgcolor, fgcolor=fgcolor)
             return Response(rendered_html, content_type='text/html; charset=utf-8')
 
 api.add_resource(Environment, '/api/environment')
