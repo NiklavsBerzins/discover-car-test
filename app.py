@@ -66,8 +66,39 @@ class Environment(Resource):
             rendered_html = render_template('environment.html', data=env_data, bgcolor=bgcolor, fgcolor=fgcolor)
             return Response(rendered_html, content_type='text/html; charset=utf-8')
 
+class PostData(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('format', type=str, location='args', default='html')
+        super(PostData, self).__init__()
+
+    def post(self):
+        args = self.reqparse.parse_args()
+        format = args['format'].lower()
+
+        post_data = request.form.to_dict()
+
+        if format == 'json':
+            return jsonify(post_data)
+        elif format == 'xml':
+            xml_data = dicttoxml(post_data)
+            return Response(xml_data, content_type='application/xml; charset=utf-8')
+        else:
+            rendered_html = render_template('post.html', data=post_data)
+            return Response(rendered_html, content_type='text/html; charset=utf-8')
+
+    def get(self):
+        return "Method not allowed", 405
+
+    def put(self):
+        return "Method not allowed", 405
+
+    def delete(self):
+        return "Method not allowed", 405
+
 api.add_resource(Environment, '/api/environment')
 api.add_resource(Headers, '/api/headers')
+api.add_resource(PostData, '/api/post')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=3000)
