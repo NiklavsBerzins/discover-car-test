@@ -9,10 +9,33 @@ api = Api(app)
 
 def getEnvironmentVariables():
     return {key: value for key, value in os.environ.items()}
+def getRequestHeaders(request):
+    return {key: value for key, value in request.headers.items()}
 
 @app.route('/')
 def hello():
     return "Hello World!!!"
+
+class Headers(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('format', type=str, location='args', default='html')
+        super(Headers, self).__init__()
+
+    def get(self):
+        args = self.reqparse.parse_args()
+        format = args['format'].lower()
+
+        headers_data = getRequestHeaders(request)
+
+        if format == 'json':
+            return jsonify(headers_data)
+        elif format == 'xml':
+            xml_data = dicttoxml(headers_data)
+            return Response(xml_data, content_type='application/xml; charset=utf-8')
+        else:
+            rendered_html = render_template('headers.html', data=headers_data)
+            return Response(rendered_html, content_type='text/html; charset=utf-8')
 
 class Environment(Resource):
     def __init__(self):
@@ -44,6 +67,7 @@ class Environment(Resource):
             return Response(rendered_html, content_type='text/html; charset=utf-8')
 
 api.add_resource(Environment, '/api/environment')
+api.add_resource(Headers, '/api/headers')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=3000)
