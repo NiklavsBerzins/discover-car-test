@@ -13,3 +13,14 @@ services:
       - ./htpasswd:/etc/nginx/htpasswd:ro
     ports:
       - "8080:80"
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: discover-cars
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
