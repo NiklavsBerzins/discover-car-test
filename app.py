@@ -1,17 +1,49 @@
 from flask import Flask, request, jsonify, render_template, Response
+from flask_sqlalchemy import SQLAlchemy
 from dicttoxml import dicttoxml
 from flask_restful import Resource, Api, reqparse
-from logging.handlers import RotatingFileHandler
 
-import os, re, logging
+import os, re, datetime
 
 app = Flask(__name__)
 api = Api(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@db/discover-cars'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+class AccessLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, nullable=False)
+    ip_address = db.Column(db.String(50), nullable=False)
+    method = db.Column(db.String(10), nullable=False)
+    path = db.Column(db.String(500), nullable=False)
+    user_agent = db.Column(db.String(500), nullable=False)
+
+with app.app_context():
+    db.create_all()
 
 def getEnvironmentVariables():
     return {key: value for key, value in os.environ.items()}
 def getRequestHeaders(request):
     return {key: value for key, value in request.headers.items()}
+
+@app.before_request
+def log_request_info():
+    timestamp = datetime.datetime.now()
+    ip_address = request.remote_addr
+    method = request.method
+    path = request.path
+    user_agent = request.user_agent.string
+
+    access_log = AccessLog(
+        timestamp=timestamp,
+        ip_address=ip_address,
+        method=method,
+        path=path,
+        user_agent=user_agent
+    )
+    db.session.add(access_log)
+    db.session.commit()
 
 @app.route('/')
 def hello():
@@ -102,20 +134,4 @@ api.add_resource(Headers, '/api/headers')
 api.add_resource(PostData, '/api/post')
 
 if __name__ == '__main__':
-    # Configure logging
-    handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter("[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    app.logger.addHandler(handler)
-
-    # Add handler to log messages to console (stdout)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(formatter)
-    app.logger.addHandler(console_handler)
-
-    app.logger.setLevel(logging.INFO)
-
     app.run(debug=True, host='0.0.0.0', port=3000)
-
